@@ -168,6 +168,8 @@ server:
 llm:
   provider: "openai" # or "anthropic", "gemini", "groq", "azure_openai", "openai_generic"
   model: "gpt-4.1" # Default model
+  # Optional for OpenAI-compatible providers: "json_schema" (default) or "json_object"
+  structured_output_mode: "json_schema"
 
 database:
   provider: "falkordb" # Default. Options: "falkordb", "neo4j"
@@ -199,6 +201,18 @@ llm:
     openai:
       api_key: "ollama" # dummy key required
       base_url: "http://localhost:11434/v1"
+```
+
+Alternatively, if using the native `openai` provider with an OpenAI-compatible endpoint:
+
+```yaml
+llm:
+  provider: "openai"
+  model: "gpt-oss:120b"  # or your preferred model
+  api_base: "http://localhost:11434/v1"
+  api_key: "ollama"  # dummy key required
+  structured_output_mode: "json_object"  # use when json_schema is accepted but not enforced
+```
 
 embedder:
   provider: "sentence_transformers" # recommended for local setup
@@ -206,6 +220,16 @@ embedder:
 ```
 
 Make sure Ollama is running locally with: `ollama serve`
+
+> [!IMPORTANT]
+> Graphiti relies on structured (JSON) output for entity/edge extraction and deduplication, and reliability varies on
+> small or local models. Prefer the most capable model your hardware can run — very small models frequently emit JSON
+> that doesn't match the expected schema, which surfaces as ingestion failures. For background and the
+> `structured_output_mode` (`json_schema` vs `json_object`) trade-off, see the core README's
+> [Structured output and small models](../README.md#structured-output-and-small-models) section.
+> If an OpenAI-compatible endpoint accepts `json_schema` but returns objects that miss fields such as
+> `extracted_entities`, set `structured_output_mode: "json_object"` so Graphiti injects the schema into the prompt
+> instead of relying on provider-side schema enforcement.
 
 > **Note:** The `openai_generic` provider automatically handles JSON response parsing for providers that return extra text after JSON output.
 
@@ -246,6 +270,7 @@ The `config.yaml` file supports environment variable expansion using `${VAR_NAME
 - `NEO4J_URI`: URI for the Neo4j database (default: `bolt://localhost:7687`)
 - `NEO4J_USER`: Neo4j username (default: `neo4j`)
 - `NEO4J_PASSWORD`: Neo4j password (default: `demodemo`)
+- `NEO4J_DATABASE`: Neo4j database name (default: `neo4j`)
 - `OPENAI_API_KEY`: OpenAI API key (required for OpenAI LLM/embedder)
 - `ANTHROPIC_API_KEY`: Anthropic API key (for Claude models)
 - `GOOGLE_API_KEY`: Google API key (for Gemini models)
